@@ -16,3 +16,6 @@
 !/log/.keep
 /tmp
 /public/system/*
+
+# Ignore personal database configuration.
+/config/database.yml
