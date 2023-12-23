@@ -58,16 +58,20 @@ class CoursesController < ApplicationController
   #-------------------------for students----------------------
 
   def list
-    #-------QiaoCode--------
-    @courses = Course.where(:open=>true).paginate(page: params[:page], per_page: 4)
-    @course = @courses-current_user.courses
-    tmp=[]
-    @course.each do |course|
-      if course.open==true
-        tmp<<course
-      end
-    end
-    @course=tmp
+    # -------QiaoCode--------
+    # @courses = Course.where(:open=>true).paginate(page: params[:page], per_page: 5)
+    # @course_unselect = @courses - current_user.courses
+    user_course_ids = current_user.courses.pluck(:id)
+    @course_unselect = Course.where(open: true)
+                             .where.not(id: user_course_ids)
+                             .paginate(page: params[:page], per_page: 4)
+    # tmp=[]
+    # @course_unselect.each do |course|
+    #   if course.open==true
+    #     tmp<<course
+    #   end
+    # end
+    # @course_unselect=tmp
   end
 
   def select
@@ -75,6 +79,17 @@ class CoursesController < ApplicationController
     current_user.courses<<@course
     flash={:suceess => "成功选择课程: #{@course.name}"}
     redirect_to courses_path, flash: flash
+  end
+
+  def search
+    @courses = Course.where(open: true)
+    @courses = @courses.where(course_week: params[:course_week]) if params[:course_week].present?
+    @courses = @courses.where(course_type: params[:course_type]) if params[:course_type].present?
+    @courses = @courses.where("name LIKE ?", "%#{params[:course_name]}%") if params[:course_name].present?
+    @course_unselect = @courses.paginate(page: params[:page], per_page: 4)
+    # 其他逻辑...
+
+    render 'list'
   end
 
   def quit
