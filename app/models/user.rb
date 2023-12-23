@@ -14,6 +14,7 @@ class User < ActiveRecord::Base
   validates :email, presence: true, length: {maximum: 255},
             format: {with: VALID_EMAIL_REGEX},
             uniqueness: {case_sensitive: false}
+  validate :major_must_exist, if: -> { major_changed? }
 
   #1. The ability to save a securely hashed password_digest attribute to the database
   #2. A pair of virtual attributes (password and password_confirmation), including presence validations upon object creation and a validation requiring that they match
@@ -53,6 +54,15 @@ class User < ActiveRecord::Base
 
   def downcase_email
     self.email = email.downcase
+  end
+
+  def major_must_exist
+    major = Major.find_by(name: self.major)
+    if major
+      self.major_id = major.id
+    else
+      errors.add(:major_name, '专业不存在！')
+    end
   end
 
 end

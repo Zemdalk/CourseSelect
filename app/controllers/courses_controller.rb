@@ -83,12 +83,10 @@ class CoursesController < ApplicationController
 
   def search
     @courses = Course.where(open: true)
-    @courses = @courses.where(course_week: params[:course_week]) if params[:course_week].present?
+    @courses = @courses.where("course_time LIKE ?", "%#{params[:course_time]}%") if params[:course_time].present?
     @courses = @courses.where(course_type: params[:course_type]) if params[:course_type].present?
     @courses = @courses.where("name LIKE ?", "%#{params[:course_name]}%") if params[:course_name].present?
     @course_unselect = @courses.paginate(page: params[:page], per_page: 4)
-    # 其他逻辑...
-
     render 'list'
   end
 
@@ -99,6 +97,16 @@ class CoursesController < ApplicationController
     redirect_to courses_path, flash: flash
   end
 
+  # def credit_stats
+  #   @credit_require_public_compulsory = 
+  # end
+  def credit
+    @credit_requirements = CreditRequirement.find(current_user.major_id)
+    @credit_selected_public_mandatory, @credit_selected_major, @credit_selected_all = get_selected_credit()
+    @credit_needed_public_mandatory = (@credit_requirements.public_mandatory_credits > @credit_selected_public_mandatory) ? (@credit_requirements.public_mandatory_credits - @credit_selected_public_mandatory) : 0
+    @credit_needed_major = (@credit_requirements.major_credits > @credit_selected_major) ? (@credit_requirements.major_credits - @credit_selected_major) : 0
+    @credit_needed_all = (@credit_requirements.all_credits > @credit_selected_all) ? (@credit_requirements.all_credits - @credit_selected_all) : 0
+  end
 
   #-------------------------for both teachers and students----------------------
 
@@ -136,5 +144,31 @@ class CoursesController < ApplicationController
                                    :credit, :limit_num, :class_room, :course_time, :course_week)
   end
 
+  def get_course_credit(course_credit)
+    parts = course_credit.split('/')
+    return parts[1].to_f
+  end
+
+  def get_selected_credit()
+    credit_public_mandatory = 0
+    credit_major = 0
+    credit_all = 0
+    current_user.courses.each do |course|
+      if course.course_type == "公共选修课"
+        credit_public_mandatory += get_course_credit(course.credit)
+      elsif course.course_type == "一级学科核心课" ||
+            course.course_type == "一级学科普及课" ||
+            course.course_type == "专业核心课" ||
+            course.course_type == "专业普及课" ||
+            course.course_type == "专业研讨课"
+        puts "#{course.credit}"
+        credit_major += get_course_credit(course.credit)
+      else
+        credit_all += get_course_credit(course.credit)
+      end
+    end
+    credit_all += credit_public_mandatory + credit_major
+    return credit_public_mandatory, credit_major, credit_all
+  end
 
 end

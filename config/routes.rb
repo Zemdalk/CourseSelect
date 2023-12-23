@@ -27,6 +27,7 @@ Rails.application.routes.draw do
     collection do
       get :list
       get :search
+      get :credit
     end
   end
 

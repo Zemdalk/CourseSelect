@@ -9,24 +9,25 @@
         <div class="panel-heading">
           <h3 class="panel-title">选修课程</h3>
         </div>
+
         <div class="panel-body" style="min-height: 450px">
 
           <div style="display: flex; justify-content: center; align-items: center;">
-          <%= form_tag(search_courses_path, method: :get, class: 'form-inline') do %>
-            <div class="form-group">
-              <%= label_tag(:course_week, "上课时间") %>
-              <%= select_tag(:course_week, options_for_select(Course.pluck(:course_week).uniq), prompt: "选择上课时间", class: 'form-control') %>
-            </div>
-            <div class="form-group">
-              <%= label_tag(:course_type, "课程属性") %>
-              <%= select_tag(:course_type, options_for_select(Course.pluck(:course_type).uniq), prompt: "选择课程属性", class: 'form-control') %>
-            </div>
-            <div class="form-group">
-              <%= label_tag(:course_name, "课程名称") %>
-              <%= text_field_tag(:course_name, params[:course_name], class: 'form-control') %>
-            </div>
-            <%= submit_tag("查询", class: 'btn btn-primary') %>
-          <% end %>
+            <%= form_tag(search_courses_path, method: :get, class: 'form-inline') do %>
+              <div class="form-group">
+                <%= label_tag(:course_time, "上课时间") %>
+                <%= select_tag(:course_time, options_for_select(["周一", "周二", "周三", "周四", "周五", "周六", "周日"]), prompt: "选择上课时间", class: 'form-control') %>
+              </div>
+              <div class="form-group">
+                <%= label_tag(:course_type, "课程属性") %>
+                <%= select_tag(:course_type, options_for_select(Course.pluck(:course_type).uniq), prompt: "选择课程属性", class: 'form-control') %>
+              </div>
+              <div class="form-group">
+                <%= label_tag(:course_name, "课程名称") %>
+                <%= text_field_tag(:course_name, params[:course_name], class: 'form-control') %>
+              </div>
+              <%= submit_tag("查询", class: 'btn btn-primary') %>
+            <% end %>
           </div>
 
           <table class="table table-striped table-hover">
@@ -52,7 +53,7 @@
 
                   <td><%= course.course_code %></td>
                   <td><%= course.name %></td>
-                  <td><%= course.course_week %></td>
+                  <td><%= course.course_time %></td>
                   <td><%= course.credit %></td>
                   <td><%= course.limit_num %></td>
                   <td><%= course.student_num %></td>

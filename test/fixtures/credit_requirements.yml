@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  major_id: 
+  public_mandatory_credits: 1
+  major_credits: 1
+  all_credits: 1
+
+two:
+  major_id: 
+  public_mandatory_credits: 1
+  major_credits: 1
+  all_credits: 1
