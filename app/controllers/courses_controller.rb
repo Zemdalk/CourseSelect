@@ -76,24 +76,42 @@ class CoursesController < ApplicationController
 
   def select
     @course=Course.find_by_id(params[:id])
-    current_user.courses<<@course
-    flash={:suceess => "成功选择课程: #{@course.name}"}
-    redirect_to courses_path, flash: flash
+    collision_course = get_first_course_time_collision(@course.course_time, @course.course_week)
+    if has_reached_course_num_limit?(@course.student_num, @course.limit_num)
+      flash={:error => "选择课程[#{@course.name}]失败：选课人数已达上限！"}
+      redirect_to list_courses_path, flash: flash
+    elsif collision_course != nil 
+      flash={:error => "选择课程[#{@course.name}]失败：与[#{collision_course}]课程存在时间冲突！"}
+      redirect_to list_courses_path, flash: flash
+    else
+      current_user.courses<<@course
+      flash={:success => "成功选择课程: [#{@course.name}]"}
+      @course.student_num += 1
+      @course.save
+      redirect_to courses_path, flash: flash
+    end
   end
 
   def search
-    @courses = Course.where(open: true)
+    # Remove courses selected
+    user_course_ids = current_user.courses.pluck(:id)
+    @courses = Course.where(open: true).where.not(id: user_course_ids)
+
+    # Filter courses according to search parameters
     @courses = @courses.where("course_time LIKE ?", "%#{params[:course_time]}%") if params[:course_time].present?
     @courses = @courses.where(course_type: params[:course_type]) if params[:course_type].present?
     @courses = @courses.where("name LIKE ?", "%#{params[:course_name]}%") if params[:course_name].present?
     @course_unselect = @courses.paginate(page: params[:page], per_page: 4)
+
     render 'list'
   end
 
   def quit
     @course=Course.find_by_id(params[:id])
     current_user.courses.delete(@course)
-    flash={:success => "成功退选课程: #{@course.name}"}
+    flash={:success => "成功退选课程: [#{@course.name}]"}
+    @course.student_num -= 1
+    @course.save
     redirect_to courses_path, flash: flash
   end
 
@@ -234,5 +252,41 @@ class CoursesController < ApplicationController
     end
     return schedule
   end
+
+  def has_reached_course_num_limit?(student_num, limit_num)
+    if limit_num == nil 
+      return false
+    end
+    return (student_num >= limit_num)
+  end
+
+  def get_first_course_time_collision(course_time, course_week)
+    schedule_all = get_schedule_all()
+    day_of_week, periods = parse_course_time(course_time)
+    new_course_week = parse_course_week(course_week)
+    periods.each do |period|
+      if schedule_all[day_of_week][period] then
+        exist_course_week = parse_course_week(schedule_all[day_of_week][period].scan(/\[([^\[\]]+)\]/)[-2].to_s)
+        if exist_course_week & new_course_week != [] then
+          collision_course = schedule_all[day_of_week][period].match(/(.*?)\n\[[^\[\]]+\]\[[^\[\]]+\]$/)[1]
+          return collision_course
+        end
+      end
+    end
+    return nil
+  end
+
+  # def flash_stu_num
+  #   users = User.all
+  #   users.each do |user|
+  #     if !user.admin && !user.teacher
+  #       courses = user.courses
+  #       courses.each do |course|
+  #         course.student_num += 1
+  #         course.save
+  #       end
+  #     end
+  #   end
+  # end
 
 end
