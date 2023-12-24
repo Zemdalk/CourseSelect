@@ -58,20 +58,10 @@ class CoursesController < ApplicationController
   #-------------------------for students----------------------
 
   def list
-    # -------QiaoCode--------
-    # @courses = Course.where(:open=>true).paginate(page: params[:page], per_page: 5)
-    # @course_unselect = @courses - current_user.courses
     user_course_ids = current_user.courses.pluck(:id)
     @course_unselect = Course.where(open: true)
                              .where.not(id: user_course_ids)
                              .paginate(page: params[:page], per_page: 4)
-    # tmp=[]
-    # @course_unselect.each do |course|
-    #   if course.open==true
-    #     tmp<<course
-    #   end
-    # end
-    # @course_unselect=tmp
   end
 
   def select
