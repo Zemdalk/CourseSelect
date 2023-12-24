@@ -97,9 +97,6 @@ class CoursesController < ApplicationController
     redirect_to courses_path, flash: flash
   end
 
-  # def credit_stats
-  #   @credit_require_public_compulsory = 
-  # end
   def credit
     @credit_requirements = CreditRequirement.find(current_user.major_id)
     @credit_selected_public_mandatory, @credit_selected_major, @credit_selected_all = get_selected_credit()
@@ -108,11 +105,23 @@ class CoursesController < ApplicationController
     @credit_needed_all = (@credit_requirements.all_credits > @credit_selected_all) ? (@credit_requirements.all_credits - @credit_selected_all) : 0
   end
 
+  def schedule
+    if params[:week].present?
+      week = /第(\d+)周/.match(params[:week])
+      if week
+        week = week[1].to_i
+      end
+      @schedule = get_schedule_for_certain_week(week)
+    else
+      @schedule = get_schedule_all()
+    end
+  end
+
   #-------------------------for both teachers and students----------------------
 
   def index
-    @course=current_user.teaching_courses.paginate(page: params[:page], per_page: 4) if teacher_logged_in?
-    @course=current_user.courses.paginate(page: params[:page], per_page: 4) if student_logged_in?
+    @course=current_user.teaching_courses.paginate(page: params[:page], per_page: 4) if teacher_logged_in? 
+    @course=current_user.courses.paginate(page: params[:page], per_page: 4) if student_logged_in? 
   end
 
 
@@ -169,6 +178,61 @@ class CoursesController < ApplicationController
     end
     credit_all += credit_public_mandatory + credit_major
     return credit_public_mandatory, credit_major, credit_all
+  end
+
+  def parse_course_time(course_time)
+    if course_time =~ /周([一二三四五六日])\((\d+)-(\d+)\)/
+      day_mapping = {
+        '一' => 0, '二' => 1, '三' => 2, '四' => 3, '五' => 4, '六' => 5, '日' => 6
+      }
+      
+      day_of_week_str = $1
+      start_period = $2.to_i
+      end_period = $3.to_i
+      
+      day_of_week = day_mapping[day_of_week_str]
+      periods = ((start_period-1)..(end_period-1))
+      
+      return day_of_week, periods
+    else
+      return nil, nil
+    end
+  end
+
+  def parse_course_week(course_week)
+    ranges = course_week.scan(/\d+-\d+|\d+/)
+    ranges.flat_map do |range|
+      if range.include?('-')
+        start, finish = range.split('-').map(&:to_i)
+        (start..finish).to_a
+      else
+        [range.to_i]
+      end
+    end
+  end
+
+  def get_schedule_all
+    schedule = Array.new(7) { Array.new(12, '') }
+    current_user.courses.each do |course|
+      day_of_week, periods = parse_course_time(course.course_time)
+      periods.each do |period|
+        schedule[day_of_week][period] = "#{course.name}\n[#{course.course_week}][#{course.class_room}]"
+      end
+    end
+    return schedule
+  end
+
+  def get_schedule_for_certain_week(week)
+    schedule = Array.new(7) { Array.new(12, '') }
+    current_user.courses.each do |course|
+      if parse_course_week(course.course_week).include? week 
+        day_of_week, periods = parse_course_time(course.course_time)
+        periods.each do |period|
+          schedule[day_of_week][period] = "#{course.name}[#{course.class_room}]"
+        end
+      end
+    end
+    return schedule
   end
 
 end

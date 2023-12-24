@@ -28,6 +28,7 @@ Rails.application.routes.draw do
       get :list
       get :search
       get :credit
+      get :schedule
     end
   end
 
